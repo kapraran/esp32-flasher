@@ -17,6 +17,7 @@ class Main(QMainWindow):
   def __init__(self, ctx):
     super().__init__()
 
+    self.running = False
     row_btn_width = 160
 
     self.ctx = ctx
@@ -43,16 +44,16 @@ class Main(QMainWindow):
     self.selectedDir = QLabel("-")
     self.selectedDir.setStyleSheet("QLabel { background-color : #cccccc; padding: 0 4px; }")
 
-    btn_refresh = QPushButton("Ανανέωση")
-    btn_refresh.setFixedWidth(row_btn_width)
-    btn_refresh.clicked.connect(self.refresh_comports)
+    self.btn_refresh = QPushButton("Ανανέωση")
+    self.btn_refresh.setFixedWidth(row_btn_width)
+    self.btn_refresh.clicked.connect(self.refresh_comports)
 
     row1 = QWidget()
 
     row1_layout = QHBoxLayout()
     row1_layout.setMargin(0)
     row1_layout.addWidget(self.cb)
-    row1_layout.addWidget(btn_refresh)
+    row1_layout.addWidget(self.btn_refresh)
 
     row1.setLayout(row1_layout)
 
@@ -85,18 +86,28 @@ class Main(QMainWindow):
     self.setCentralWidget(mainWidget)
 
   def refresh_comports(self):
+    if self.running:
+      return
+
+    self.btn_refresh.setEnabled(False)
     self.cb.clear()
     self.cb.addItems(get_usb_ports())
+    self.btn_refresh.setEnabled(True)
 
   def onprocFinished(self):
-    self.btn_upload.setEnabled(True)
     self.output.append('\n ** ΤΕΛΟΣ **')
 
     # move scrollbar to the bottom
     maximum = self.output.verticalScrollBar().maximum()
     self.output.verticalScrollBar().setValue(maximum)
 
+    self.running = False
+    self.btn_upload.setEnabled(True)
+
   def openFile(self):
+    if self.running:
+      return
+
     if self.dlg.exec_():
       self.selectedDir.setText(self.dlg.selectedFiles()[0])
 
@@ -122,6 +133,7 @@ class Main(QMainWindow):
       return (path_InoBin, path_InoPartitionsBin)
 
   def extractZip(self):
+    self.running = True
     self.btn_upload.setEnabled(False)
     self.output.clear()
 
