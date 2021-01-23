@@ -1,6 +1,7 @@
 from fbs_runtime.application_context.PySide2 import ApplicationContext
-from PySide2.QtWidgets import QTextEdit, QMainWindow, QPushButton, QVBoxLayout, QWidget, QComboBox, QFileDialog, QLabel
+from PySide2.QtWidgets import QTextEdit, QMainWindow, QPushButton, QHBoxLayout, QVBoxLayout, QWidget, QComboBox, QFileDialog, QLabel
 from PySide2.QtCore import QProcess
+from PySide2.QtGui import QFontDatabase
 import tempfile
 import zipfile
 import os
@@ -16,17 +17,23 @@ class Main(QMainWindow):
   def __init__(self, ctx):
     super().__init__()
 
+    row_btn_width = 160
+
     self.ctx = ctx
     self.resize(800, 500)
 
     self.cb = self.createComboBox()
 
+    fixedFont = QFontDatabase.systemFont(QFontDatabase.FixedFont)
     self.output = QTextEdit()
     self.output.setReadOnly(True)
+    self.output.setFont(fixedFont)
+    self.output.setStyleSheet("QTextEdit { background-color : #000; color: orange; }")
 
     mainWidget = QWidget()
 
     button1 = QPushButton("Επιλογή Αρχείου")
+    button1.setFixedWidth(row_btn_width)
     button1.clicked.connect(self.openFile)
 
     self.btn_upload = QPushButton("Μεταφόρτωση")
@@ -34,11 +41,34 @@ class Main(QMainWindow):
     self.btn_upload.setFixedHeight(60)
 
     self.selectedDir = QLabel("-")
+    self.selectedDir.setStyleSheet("QLabel { background-color : #cccccc; padding: 0 4px; }")
+
+    btn_refresh = QPushButton("Ανανέωση")
+    btn_refresh.setFixedWidth(row_btn_width)
+    btn_refresh.clicked.connect(self.refresh_comports)
+
+    row1 = QWidget()
+
+    row1_layout = QHBoxLayout()
+    row1_layout.setMargin(0)
+    row1_layout.addWidget(self.cb)
+    row1_layout.addWidget(btn_refresh)
+
+    row1.setLayout(row1_layout)
+
+    row2 = QWidget()
+    row2_layout = QHBoxLayout()
+    row2_layout.setMargin(0)
+    row2_layout.addWidget(self.selectedDir)
+    row2_layout.addWidget(button1)
+    row2.setLayout(row2_layout)
 
     layout = QVBoxLayout()
-    layout.addWidget(self.cb)
-    layout.addWidget(self.selectedDir)
-    layout.addWidget(button1)
+    # layout.addWidget(self.cb)
+    layout.addWidget(row1)
+    # layout.addWidget(self.selectedDir)
+    # layout.addWidget(button1)
+    layout.addWidget(row2)
     layout.addWidget(self.output)
     layout.addWidget(self.btn_upload)
 
@@ -54,9 +84,17 @@ class Main(QMainWindow):
 
     self.setCentralWidget(mainWidget)
 
+  def refresh_comports(self):
+    self.cb.clear()
+    self.cb.addItems(get_usb_ports())
+
   def onprocFinished(self):
     self.btn_upload.setEnabled(True)
     self.output.append('\n ** ΤΕΛΟΣ **')
+
+    # move scrollbar to the bottom
+    maximum = self.output.verticalScrollBar().maximum()
+    self.output.verticalScrollBar().setValue(maximum)
 
   def openFile(self):
     if self.dlg.exec_():
