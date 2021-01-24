@@ -1,5 +1,5 @@
 from fbs_runtime.application_context.PySide2 import ApplicationContext
-from PySide2.QtWidgets import QTextEdit, QMainWindow, QPushButton, QHBoxLayout, QVBoxLayout, QWidget, QComboBox, QFileDialog, QLabel
+from PySide2.QtWidgets import QMessageBox, QTextEdit, QMainWindow, QPushButton, QHBoxLayout, QVBoxLayout, QWidget, QComboBox, QFileDialog, QLabel
 from PySide2.QtCore import QProcess
 from PySide2.QtGui import QFontDatabase
 import tempfile
@@ -16,6 +16,8 @@ def get_usb_ports():
 class Main(QMainWindow):
   def __init__(self, ctx):
     super().__init__()
+
+    self.setWindowTitle('ESP32 Flasher - By @kapraran')
 
     self.running = False
     row_btn_width = 160
@@ -85,6 +87,9 @@ class Main(QMainWindow):
 
     self.setCentralWidget(mainWidget)
 
+  def alert(self, message):
+    QMessageBox.critical(self, 'Σφάλμα', message)
+
   def refresh_comports(self):
     if self.running:
       return
@@ -137,7 +142,19 @@ class Main(QMainWindow):
     self.btn_upload.setEnabled(False)
     self.output.clear()
 
+    comport = self.cb.currentText()
     filepath = self.selectedDir.text()
+
+    if comport.strip() == '':
+      self.alert('Δεν επιλέχθηκε port')
+      self.endRunning()
+      return
+
+    if filepath.strip() == '-':
+      self.alert('Δεν επιλέχθηκε κάποιο αρχείο')
+      self.endRunning()
+      return
+
     self.tmp_dir = tempfile.TemporaryDirectory()
 
     # extract files
@@ -156,7 +173,7 @@ class Main(QMainWindow):
 
       self.process.start(path_EspTool, [
         '--chip', 'esp32',
-        '--port', self.cb.currentText(),
+        '--port', comport,
         '--baud', '921600',
         '--before', 'default_reset',
         '--after', 'hard_reset', 'write_flash',
@@ -180,6 +197,10 @@ class Main(QMainWindow):
     cb.addItems(portNames)
 
     return cb
+
+  def endRunning(self):
+    self.running = False
+    self.btn_upload.setEnabled(True)
 
 
 if __name__ == '__main__':
