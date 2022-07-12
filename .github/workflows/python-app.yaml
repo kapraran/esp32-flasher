@@ -1,0 +1,37 @@
+# This workflow will install Python dependencies, run tests and lint with a single version of Python
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: Python application
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python 3.6
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.6
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyserial matplotlib==3.2.2 fbs PySide2==5.12.2 pywin32
+      - name: Run fbs
+        run: |
+          fbs clean
+          fbs freeze
+          fbs installer
+      - name: Display structure of downloaded files
+        run: ls -R
+      - name: Download a Build Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: "installer"
+          path: "target\\Artemis Detector 3axis ReaderSetup.exe"
